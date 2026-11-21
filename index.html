@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>千葉ラーメンMAP</title>
+<meta name="description" content="千葉県のご当地ラーメンと有名店をマップで紹介">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#fbf7f1; --surface:#ffffff; --text:#2a211b; --muted:#6f6358; --line:#e8dfd4;
+  --accent:#c2410c; --accent-soft:#fdeee4; --gotochi:#c2410c; --meiten:#1d4ed8; --local:#15803d;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17130f; --surface:#221c17; --text:#f1e9e0; --muted:#b3a597; --line:#3a3029;
+    --accent:#fb923c; --accent-soft:#3a2416; --gotochi:#fb923c; --meiten:#7aa2ff; --local:#4ade80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17130f; --surface:#221c17; --text:#f1e9e0; --muted:#b3a597; --line:#3a3029;
+  --accent:#fb923c; --accent-soft:#3a2416; --gotochi:#fb923c; --meiten:#7aa2ff; --local:#4ade80;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;line-height:1.75}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+header{padding:48px 0 24px;border-bottom:1px solid var(--line)}
+header p.kicker{margin:0;color:var(--accent);font-weight:700;letter-spacing:.1em;font-size:.85rem}
+h1{margin:4px 0 8px;font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.25}
+header p.lead{margin:0;color:var(--muted);max-width:640px}
+h2{font-size:1.35rem;margin:40px 0 12px}
+#map{height:420px;border-radius:12px;border:1px solid var(--line);z-index:0}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-top:8px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+.filters button{font:inherit;font-size:.9rem;padding:6px 14px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--text)}
+.filters button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;
+  display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .15s}
+.card:hover,.card:focus-visible{border-color:var(--accent);outline:none}
+.tag{align-self:flex-start;font-size:.75rem;font-weight:700;padding:2px 10px;border-radius:999px}
+.tag.gotochi{background:var(--accent-soft);color:var(--gotochi)}
+.tag.meiten{background:color-mix(in srgb,var(--meiten) 14%,transparent);color:var(--meiten)}
+.tag.local{background:color-mix(in srgb,var(--local) 14%,transparent);color:var(--local)}
+.card h3{margin:4px 0 0;font-size:1.15rem}
+.area{color:var(--muted);font-size:.85rem;margin:0}
+.card p{margin:0}
+.points{margin:4px 0 0;padding-left:1.2em;font-size:.92rem}
+.note{margin:40px 0;padding:16px 20px;border-radius:12px;background:var(--accent-soft);font-size:.9rem}
+footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px solid var(--line)}
+.leaflet-popup-content{font-family:inherit;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="kicker">CHIBA RAMEN GUIDE</p>
+    <h1>千葉ラーメンMAP</h1>
+    <p class="lead">房総の漁師町で生まれたピリ辛麺から、行列の絶えない濃厚つけ麺まで。千葉県のご当地ラーメンと名店を、地図と一緒に紹介します。</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <h2>マップ</h2>
+  <div id="map" role="region" aria-label="千葉県ラーメンマップ"></div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--gotochi)"></span>ご当地ラーメン</span>
+    <span><span class="dot" style="background:var(--meiten)"></span>有名店・人気系統</span>
+    <span><span class="dot" style="background:var(--local)"></span>おすすめの店</span>
+    <span>※ピンはエリアのおおよその位置です</span>
+  </div>
+
+  <h2>ラーメン一覧</h2>
+  <div class="filters" role="group" aria-label="絞り込み">
+    <button data-f="all" aria-pressed="true">すべて</button>
+    <button data-f="gotochi" aria-pressed="false">ご当地ラーメン</button>
+    <button data-f="meiten" aria-pressed="false">有名店・人気系統</button>
+    <button data-f="local" aria-pressed="false">おすすめの店</button>
+  </div>
+  <div class="grid" id="list"></div>
+
+  <div class="note">
+    <strong>ご来店の前に</strong><br>
+    営業時間・定休日・メニューは変わることがあります。お出かけ前に各店の公式情報やSNSで最新の情報をご確認ください。
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">千葉ラーメンMAP ／ 地図データ © OpenStreetMap contributors</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const RAMEN = [
+  {
+    id:"takeoka", type:"gotochi", name:"竹岡式ラーメン", area:"富津市 竹岡（内房）",
+    lat:35.198, lng:139.840,
+    desc:"チャーシューを煮込んだ醤油ダレを、スープではなくお湯で割るのが最大の特徴。真っ黒なスープに見えて、意外にあっさり。",
+    points:["醤油ダレ＋お湯というシンプルな構成","麺に乾麺を使う店もある","刻み玉ねぎとチャーシューがのる"],
+    shop:"代表的な店：梅乃家（竹岡）"
+  },
+  {
+    id:"katsuura", type:"gotochi", name:"勝浦タンタンメン", area:"勝浦市（外房）",
+    lat:35.152, lng:140.320,
+    desc:"海女さんや漁師が冷えた体を温めるために広まったといわれる一杯。ごまを使わず、醤油ベースのスープにラー油が真っ赤に浮かぶ。",
+    points:["ラー油の辛さと玉ねぎの甘み","ひき肉と炒めた玉ねぎがたっぷり","B級グルメとして全国区の知名度"],
+    shop:"代表的な店：江ざわ（勝浦）ほか、市内に提供店多数"
+  },
+  {
+    id:"arirang", type:"gotochi", name:"アリランラーメン", area:"長生郡 長柄町",
+    lat:35.430, lng:140.230,
+    desc:"にんにく・生姜・玉ねぎ・ニラなどを豚肉と炒め、醤油スープに合わせたスタミナ系。山あいの町で長く愛されてきた。",
+    points:["香味野菜たっぷりでスタミナ満点","醤油ベースでピリッと辛い","具だくさんで食べごたえあり"],
+    shop:"代表的な店：八平の食堂（長柄町）"
+  },
+  {
+    id:"whitegau", type:"gotochi", name:"ホワイトガウラーメン", area:"袖ケ浦市",
+    lat:35.425, lng:139.975,
+    desc:"牛乳をベースに生姜を効かせた、白くてクリーミーなスープの一杯。2011年の「袖-1グランプリ」で優勝し、袖ケ浦のご当地ラーメンとして知られるようになった。",
+    points:["牛乳ベースのまろやかな白いスープ","生姜が効いて後味はさっぱり","牛乳が苦手でも食べやすいと評判"],
+    shop:"元祖の店：大衆中華 ホサナ（袖ケ浦市くらなみ台／JR長浦駅から徒歩約15分）"
+  },
+  {
+    id:"funabashi", type:"gotochi", name:"船橋ソースラーメン", area:"船橋市",
+    lat:35.701, lng:139.985,
+    desc:"醤油や味噌の代わりにソースをタレに使う、ちょっと変わったご当地ラーメン。戦後、船橋駅前の中華食堂がソース焼きそばをヒントに作ったのが始まりといわれる。",
+    points:["鶏ガラスープ＋ソースの甘口でとろみのある味","青のり・紅しょうが・キャベツで焼きそば風に","2012年から「船橋ソースラーメンプロジェクト」で提供店が広がった"],
+    shop:"提供店：市内の参加店で提供（発祥の「花蝶」は閉店）"
+  },
+  {
+    id:"tomita", type:"meiten", name:"濃厚豚骨魚介つけ麺", area:"松戸市",
+    lat:35.784, lng:139.900,
+    desc:"松戸は全国屈指の濃厚つけ麺の聖地。豚骨と魚介を重ねたドロッとしたつけ汁に、極太の自家製麺を絡める。",
+    points:["とろみのある濃厚なつけ汁","小麦の香りが立つ極太麺","行列覚悟の人気エリア"],
+    shop:"代表的な店：中華蕎麦 とみ田（松戸）"
+  },
+  {
+    id:"chibakara", type:"meiten", name:"ちばから（背脂ニンニク系）", area:"市原市",
+    lat:35.512, lng:140.088,
+    desc:"千葉発のガッツリ系ラーメン。豚骨醤油に背脂とニンニクを効かせ、野菜を山盛りにする豪快なスタイル。",
+    points:["背脂の甘みとニンニクのパンチ","野菜・ニンニクなどの量を選べる","がっつり食べたい日に"],
+    shop:"代表的な店：ちばから（市原 本店）"
+  },
+  {
+    id:"naritake", type:"meiten", name:"背脂こってり系", area:"船橋市 前原西（津田沼）",
+    lat:35.693, lng:140.020,
+    desc:"スープを覆うほどの背脂と太麺が名物のこってり系。背脂の量を「少なめ」から「ギタギタ」まで選べ、味噌も人気。パリにも支店がある。",
+    points:["背脂の量を4段階から選べる","濃い味のスープに太麺","醤油・味噌どちらも人気"],
+    shop:"代表的な店：ラーメン なりたけ 津田沼店（JR津田沼駅北口から徒歩約5分）"
+  },
+  {
+    id:"nakataya", type:"local", name:"中田屋", area:"船橋市 湊町（京成 大神宮下駅）",
+    lat:35.695, lng:139.980,
+    desc:"住宅街にある昭和の雰囲気の残る蕎麦屋さん。人気は昔ながらの素朴な醤油味の中華そば。",
+    points:["昔ながらの醤油の中華そば","町の食堂らしいレトロな店内","蕎麦・うどんもある"],
+    shop:"中田屋（船橋市湊町）"
+  },
+  {
+    id:"shinsei", type:"local", name:"麺屋 真星", area:"浦安市（東西線 浦安駅）",
+    lat:35.663, lng:139.893,
+    desc:"東西線・浦安駅から歩いて7分ほどのラーメン店。麺がなくなり次第終了の人気店で、限定メニューも話題になる。",
+    points:["東西線 浦安駅から徒歩約7分","麺がなくなり次第終了","満席時は先に食券を購入"],
+    shop:"麺屋 真星（浦安市）"
+  },
+  {
+    id:"komuro", type:"local", name:"支那ソバ 小むろ", area:"市川市 行徳",
+    lat:35.680, lng:139.920,
+    desc:"行徳の老舗系中華そば店。店の奥に製麺所がある自家製麺で、細部まで丁寧な仕事で知られる。ワンタンメンが評判。",
+    points:["自家製麺","評判はワンタンメン","昔ながらの支那そばの系譜"],
+    shop:"支那ソバ 小むろ（東西線 行徳駅から徒歩約11分）"
+  },
+  {
+    id:"johnny", type:"local", name:"らー麺屋 バリバリジョニー", area:"市川市 湊新田",
+    lat:35.687, lng:139.924,
+    desc:"ロックンロール好きの店主が営む行徳エリアのラーメン店。英語も通じ、海外からのお客さんにも人気。",
+    points:["ロックな雰囲気の店","店主は英語も堪能","ブラックペッパーのトッピングが人気"],
+    shop:"らー麺屋 バリバリジョニー（市川市湊新田）"
+  },
+  {
+    id:"hakase", type:"local", name:"博士ラーメン 別館", area:"鎌ケ谷市（鎌ヶ谷駅・初富駅の近く）",
+    lat:35.778, lng:140.002,
+    desc:"ラーメン店とタイ料理店が一緒になったユニークな店。魚介ベースのあっさりスープのほか、グリーンカレーラーメンなどタイ風の一杯も。",
+    points:["魚介ベースのあっさり系","グリーンカレーラーメンなどタイ風メニュー","駐車場が広い"],
+    shop:"博士ラーメン別館（鎌ケ谷市）"
+  },
+  {
+    id:"fukufuku", type:"local", name:"麺や 福々三座", area:"八千代市 大和田新田",
+    lat:35.720, lng:140.090,
+    desc:"京都の和食店で長く修行した店主の店。鶏ガラと椎茸の香る澄んだスープに、全粒粉のもちもち麺と厚切りチャーシュー。朝ラーも楽しめる。",
+    points:["和食仕込みの澄んだスープ","全粒粉のもちもち麺","だし巻き玉子つきのモーニングセット"],
+    shop:"麺や 福々三座（八千代市大和田新田）"
+  },
+  {
+    id:"sasamoto", type:"local", name:"鶏白湯らぁめん 笹本爲次郎商店", area:"千葉市 稲毛区 小仲台1-6-21（JR稲毛駅から徒歩約5分）",
+    lat:35.640, lng:140.094,
+    desc:"2023年7月オープンの鶏白湯ラーメン専門店。店主は名店「蔭山樓」の元総料理長で、中国料理の名店で腕を磨いた料理人。濃厚なのに最後の一滴まで飲み干せる、臭みのない中華風の鶏白湯が自慢。TRYラーメン大賞 新店部門を受賞。",
+    points:["看板は鶏白湯塩ラーメン。一番人気は手包みワンタンが入った鶏白湯塩ワンタン麺","浅草開化楼の特注・やや縮れた中太麺と、しっとり柔らかいチャーシュー","味付きの自家製餃子は、まず何もつけずに食べるのがおすすめ","スープをかけて食べる「すじこんご飯」や自家製焼売も人気。昼飲みもできる"],
+    shop:"昼 11:00〜15:00／夜 18:00〜22:00（公式サイトより）・水曜定休・駐車場なし（近くにコインパーキングあり）"
+  },
+  {
+    id:"sugitaya", type:"local", name:"ラーメン 杉田家 千葉店", area:"千葉市 中央区 祐光",
+    lat:35.620, lng:140.135,
+    desc:"家系ラーメンの総本山・吉村家の直系店。豚骨醤油のこってりスープに太麺、スモーキーなチャーシュー。早朝から営業している。",
+    points:["吉村家直系の家系ラーメン","濃厚だけど角のないまろやかなスープ","早朝営業・駐車場あり"],
+    shop:"杉田家 千葉祐光店（千葉駅前にも店舗あり）"
+  },
+  {
+    id:"kokage", type:"local", name:"らーめん 木陰", area:"四街道市（JR物井駅）",
+    lat:35.668, lng:140.220,
+    desc:"総武本線・物井駅から歩いて10分ほどのラーメン店。昼と夜の二部営業。",
+    points:["JR物井駅から徒歩約10分","昼・夜の二部営業"],
+    shop:"らーめん 木陰（四街道市）"
+  },
+  {
+    id:"torisuke", type:"local", name:"鶏すけ", area:"印旛郡 酒々井町（京成酒々井駅）",
+    lat:35.722, lng:140.268,
+    desc:"泡立てたエスプーマ状の鶏白湯スープと、つるもち麺が魅力の店。割烹のような清潔な店内で、チャーシュー丼も人気。",
+    points:["泡立てた鶏白湯スープ","お酢で味変できる","駐車場あり・駅から徒歩約5分"],
+    shop:"鶏すけ（酒々井町）"
+  },
+  {
+    id:"fukunoji", type:"local", name:"らあめん 福のじ", area:"木更津市方面（JR久留里線 上総清川駅）",
+    lat:35.365, lng:139.965,
+    desc:"久留里線・上総清川駅から歩いて20分ほどの、昼だけ営業のラーメン店。ひとりでも入りやすいカウンターがある。",
+    points:["昼のみ営業","カウンター席あり","車で行くのがおすすめ"],
+    shop:"らあめん 福のじ（月・木定休との情報あり）"
+  }
+];
+
+const css = getComputedStyle(document.documentElement);
+const TYPES = {gotochi:"ご当地ラーメン", meiten:"有名店・人気系統", local:"おすすめの店"};
+const color = t => css.getPropertyValue("--"+t).trim();
+const label = t => TYPES[t];
+
+// Map (works only when online; the list works regardless)
+let map = null;
+const markers = {};
+if (window.L) {
+  map = L.map("map",{scrollWheelZoom:false}).setView([35.48,140.12],9);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:18, attribution:"&copy; OpenStreetMap contributors"
+  }).addTo(map);
+  RAMEN.forEach(r=>{
+    markers[r.id] = L.circleMarker([r.lat,r.lng],{radius:10,color:"#fff",weight:2,fillColor:color(r.type),fillOpacity:1})
+      .addTo(map)
+      .bindPopup(`<strong>${r.name}</strong><br>${r.area}<br><small>${r.shop}</small>`);
+  });
+} else {
+  const box = document.getElementById("map");
+  box.style.cssText += ";display:grid;place-items:center;color:var(--muted);text-align:center;padding:16px";
+  box.textContent = "地図を読み込めませんでした。インターネットに接続した状態で開くと地図が表示されます。";
+}
+
+// List
+const list = document.getElementById("list");
+function render(f){
+  list.innerHTML = "";
+  RAMEN.filter(r=>f==="all"||r.type===f).forEach(r=>{
+    const el = document.createElement("article");
+    el.className="card"; el.tabIndex=0;
+    el.innerHTML = `
+      <span class="tag ${r.type}">${label(r.type)}</span>
+      <h3>${r.name}</h3>
+      <p class="area">📍 ${r.area}</p>
+      <p>${r.desc}</p>
+      <ul class="points">${r.points.map(p=>`<li>${p}</li>`).join("")}</ul>
+      <p class="area">${r.shop}</p>`;
+    const go = ()=>{
+      if(!map) return;
+      document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"});
+      map.flyTo([r.lat,r.lng],11); markers[r.id].openPopup();
+    };
+    el.addEventListener("click",go);
+    el.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+    list.appendChild(el);
+  });
+}
+document.querySelectorAll(".filters button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".filters button").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");
+    render(b.dataset.f);
+  });
+});
+render("all");
+</script>
+</body>
+</html>
