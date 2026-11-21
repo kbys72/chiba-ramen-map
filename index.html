@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>千葉ラーメンMAP</title>
-<meta name="description" content="千葉県のご当地ラーメンと有名店をマップで紹介">
+<meta name="description" content="千葉県のご当地ラーメンと有名店をマップで紹介。豪雨と台風25号で被害を受けた千葉を、食べて応援しよう。">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
@@ -50,6 +50,18 @@ h2{font-size:1.35rem;margin:40px 0 12px}
 .card p{margin:0}
 .points{margin:4px 0 0;padding-left:1.2em;font-size:.92rem}
 .note{margin:40px 0;padding:16px 20px;border-radius:12px;background:var(--accent-soft);font-size:.9rem}
+.support{margin-top:32px;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--accent);
+  border-radius:12px;padding:24px}
+.support h2{margin:0 0 8px}
+.support h3{font-size:1.05rem;margin:20px 0 6px}
+.support p{margin:0 0 8px}
+.support ul{margin:0;padding-left:1.2em}
+.support li{margin:4px 0}
+.support a{color:var(--accent);font-weight:600}
+.support small{color:var(--muted)}
+.ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:8px}
+.way{background:var(--accent-soft);border-radius:10px;padding:16px}
+.way strong{display:block;margin-bottom:4px}
 footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px solid var(--line)}
 .leaflet-popup-content{font-family:inherit;line-height:1.6}
 </style>
@@ -57,13 +69,50 @@ footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px sol
 <body>
 <header>
   <div class="wrap">
-    <p class="kicker">CHIBA RAMEN GUIDE</p>
+    <p class="kicker">CHIBA RAMEN GUIDE ／ がんばろう千葉</p>
     <h1>千葉ラーメンMAP</h1>
-    <p class="lead">房総の漁師町で生まれたピリ辛麺から、行列の絶えない濃厚つけ麺まで。千葉県のご当地ラーメンと名店を、地図と一緒に紹介します。</p>
+    <p class="lead">一杯のラーメンで、千葉に元気を。今年の豪雨と台風25号で被害を受けた千葉を、「食べて応援」しませんか。房総の漁師町で生まれたピリ辛麺から、行列の絶えない濃厚つけ麺まで、千葉県のご当地ラーメンと名店を地図と一緒に紹介します。</p>
   </div>
 </header>
 
 <main class="wrap">
+  <section class="support" aria-labelledby="support-title">
+    <h2 id="support-title">千葉を応援しよう</h2>
+    <p>2026年8月13日からの記録的な大雨（令和8年8月千葉豪雨）と、9月21日に接近した台風25号で、千葉県では多くの尊い命が失われ、たくさんの住宅が浸水しました。台風25号では印旛沼周辺で堤防が決壊し、佐倉市や鎌ケ谷市などで大きな浸水被害が出ています。</p>
+    <p>亡くなられた方々に心からお悔やみを申し上げるとともに、被災されたすべての皆さまにお見舞いを申し上げます。</p>
+
+    <h3>わたしたちにできる応援</h3>
+    <div class="ways">
+      <div class="way">
+        <strong>🍜 食べに行く</strong>
+        お店に足を運ぶことが、地域のいちばんの力になります。被災した地域では営業時間の変更や休業もあるので、出かける前にお店のSNSなどで確認しましょう。
+      </div>
+      <div class="way">
+        <strong>💴 義援金を送る</strong>
+        被災された方へ直接届くお金です。受付期間や振込先は、必ず下の公式ページで確認してください。
+      </div>
+      <div class="way">
+        <strong>🎁 ふるさと納税で寄付する</strong>
+        被災した市町に、お礼の品なしの「災害支援寄付」ができます。
+      </div>
+    </div>
+
+    <h3>義援金の公式窓口</h3>
+    <ul>
+      <li><a href="https://akaihane-chiba.jp/pages/305/" target="_blank" rel="noopener">千葉県共同募金会「令和8年8月千葉豪雨及び台風第25号 千葉県災害義援金」</a><br><small>千葉県の義援金の受付窓口。全額が県の義援金配分委員会を通じて被災された方へ届けられます。</small></li>
+      <li><a href="https://www.jrc.or.jp/contribute/help/20261005/" target="_blank" rel="noopener">日本赤十字社「令和8年台風第25号災害義援金」</a></li>
+      <li><a href="https://www.city.chiba.jp/hokenfukushi/kenkofukushi/chiikifukushi/r8chibagouugiennkin.html" target="_blank" rel="noopener">千葉市「令和8年8月千葉豪雨・台風第25号等の被災者支援義援金」</a></li>
+    </ul>
+
+    <h3>ふるさと納税（災害支援）</h3>
+    <ul>
+      <li><a href="https://www.furusato-tax.jp/saigai/detail/3348" target="_blank" rel="noopener">千葉県佐倉市（ふるさとチョイス 災害支援）</a></li>
+      <li><a href="https://www.furusato-tax.jp/saigai/detail/3349" target="_blank" rel="noopener">千葉県成田市（ふるさとチョイス 災害支援）</a></li>
+    </ul>
+    <p><small>ほかにも長柄町、白井市、富津市、館山市、木更津市などが災害支援の寄付を受け付けています。ふるさとチョイスの「災害支援」から探せます。<br>
+    被害の状況は <a href="https://ja.wikipedia.org/wiki/%E4%BB%A4%E5%92%8C8%E5%B9%B48%E6%9C%88%E5%8D%83%E8%91%89%E8%B1%AA%E9%9B%A8" target="_blank" rel="noopener">令和8年8月千葉豪雨（Wikipedia）</a> や千葉県の発表で確認できます。</small></p>
+  </section>
+
   <h2>マップ</h2>
   <div id="map" role="region" aria-label="千葉県ラーメンマップ"></div>
   <div class="legend">
@@ -84,12 +133,12 @@ footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px sol
 
   <div class="note">
     <strong>ご来店の前に</strong><br>
-    営業時間・定休日・メニューは変わることがあります。お出かけ前に各店の公式情報やSNSで最新の情報をご確認ください。
+    営業時間・定休日・メニューは変わることがあります。豪雨や台風の影響で、臨時休業や営業時間を短くしているお店もあるかもしれません。お出かけ前に各店の公式情報やSNSで最新の情報をご確認ください。
   </div>
 </main>
 
 <footer>
-  <div class="wrap">千葉ラーメンMAP ／ 地図データ © OpenStreetMap contributors</div>
+  <div class="wrap">千葉ラーメンMAP ／ 食べて応援、がんばろう千葉 ／ 地図データ © OpenStreetMap contributors</div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
