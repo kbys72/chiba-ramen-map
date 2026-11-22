@@ -105,6 +105,12 @@ h2{font-size:1.35rem;margin:40px 0 12px}
 .feature p{margin:0 0 10px}
 .feature-info{list-style:none;padding:0;margin:12px 0 16px}
 .feature-info li{margin:2px 0}
+.feature-actions{display:flex;gap:10px;flex-wrap:wrap}
+a.feature-btn{text-decoration:none;display:inline-block}
+.gmap{align-self:flex-start;display:inline-flex;align-items:center;min-height:40px;margin-top:4px;padding:6px 14px;
+  border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--meiten);font-weight:700;font-size:.88rem;text-decoration:none}
+.gmap:hover{border-color:var(--meiten)}
+.gmap-pop{font-weight:700}
 .feature-btn{font:inherit;font-weight:700;padding:10px 20px;border-radius:999px;border:0;cursor:pointer;
   background:#fff;color:#9a3412}
 .feature-btn:hover{opacity:.9}
@@ -165,7 +171,10 @@ footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px sol
       <li>📍 大網白里市 金谷郷232-1（JR外房線 大網駅から徒歩約10分）</li>
       <li>☎ 0475-73-7386</li>
     </ul>
-    <button type="button" class="feature-btn" id="feature-map">地図で場所を見る</button>
+    <div class="feature-actions">
+      <button type="button" class="feature-btn" id="feature-map">地図で場所を見る</button>
+      <a class="feature-btn" href="https://www.google.com/maps/search/?api=1&amp;query=%E3%83%A9%E3%83%BC%E3%83%A1%E3%83%B3%E3%81%BF%E3%81%9F%E3%81%91%20%E5%A4%A7%E7%B6%B2%E7%99%BD%E9%87%8C%E5%B8%82%E9%87%91%E8%B0%B7%E9%83%B7232-1" target="_blank" rel="noopener">Googleマップで開く ↗</a>
+    </div>
   </section>
 
   <h2>ラーメン一覧</h2>
@@ -293,7 +302,7 @@ const RAMEN = [
   },
   {
     id:"hakase", type:"local", name:"博士ラーメン 別館", area:"鎌ケ谷市（鎌ヶ谷駅・初富駅の近く）",
-    lat:35.778, lng:140.002,
+    lat:35.7648, lng:139.9986,
     desc:"ラーメン店とタイ料理店が一緒になったユニークな店。魚介ベースのあっさりスープのほか、グリーンカレーラーメンなどタイ風の一杯も。",
     points:["魚介ベースのあっさり系","グリーンカレーラーメンなどタイ風メニュー","駐車場が広い"],
     shop:"博士ラーメン別館（鎌ケ谷市）"
@@ -335,12 +344,27 @@ const RAMEN = [
   },
   {
     id:"fukunoji", type:"local", name:"らあめん 福のじ", area:"木更津市方面（JR久留里線 上総清川駅）",
-    lat:35.365, lng:139.965,
+    lat:35.4045, lng:139.9734,
     desc:"久留里線・上総清川駅から歩いて20分ほどの、昼だけ営業のラーメン店。ひとりでも入りやすいカウンターがある。",
     points:["昼のみ営業","カウンター席あり","車で行くのがおすすめ"],
     shop:"らあめん 福のじ（月・木定休との情報あり）"
   }
 ];
+
+// Googleマップで開くときの検索語（店名＋住所。ご当地・系統は代表店）
+const GMAP_Q = {
+  takeoka:"梅乃家 富津市竹岡", katsuura:"元祖勝浦式担々麺 江ざわ 勝浦市", arirang:"八平の食堂 長柄町",
+  whitegau:"大衆中華ホサナ 袖ケ浦市くらなみ台2-23-23", funabashi:"船橋ソースラーメン 船橋市",
+  tomita:"中華蕎麦 とみ田 松戸市", chibakara:"ちばから 市原市", naritake:"ラーメン なりたけ 津田沼店",
+  shinsei:"麺屋 真星 浦安市北栄2-19-26", goemon:"らーめん五衛門 浦安店 浦安市堀江2-29-2",
+  mitake:"ラーメンみたけ 大網白里市金谷郷232-1", nakataya:"中田屋 船橋市湊町1-9-14",
+  komuro:"支那ソバ 小むろ 市川市 行徳", johnny:"らー麺屋 バリバリジョニー 市川市湊新田2-9-10",
+  hakase:"博士ラーメン別館 鎌ケ谷市", fukufuku:"麺や福々三座 八千代市大和田新田1035-1",
+  sasamoto:"笹本爲次郎商店 千葉市稲毛区小仲台1-6-21", sugitaya:"杉田家 千葉祐光店 千葉市中央区祐光4-17-7",
+  kokage:"らーめん木陰 四街道市", torisuke:"鶏すけ 酒々井町", fukunoji:"らあめん福のじ 木更津市"
+};
+const gmapURL = r => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(GMAP_Q[r.id] || r.name);
+const gmapLink = (r, cls="gmap") => `<a class="${cls}" href="${gmapURL(r)}" target="_blank" rel="noopener">Googleマップで開く ↗</a>`;
 
 const css = getComputedStyle(document.documentElement);
 const TYPES = {gotochi:"ご当地ラーメン", meiten:"有名店・人気系統", local:"おすすめの店"};
@@ -358,7 +382,7 @@ if (window.L) {
   RAMEN.forEach(r=>{
     markers[r.id] = L.circleMarker([r.lat,r.lng],{radius:10,color:"#fff",weight:2,fillColor:color(r.type),fillOpacity:1})
       .addTo(map)
-      .bindPopup(`<strong>${r.name}</strong><br>${r.area}<br><small>${r.shop}</small>`);
+      .bindPopup(`<strong>${r.name}</strong><br>${r.area}<br><small>${r.shop}</small><br>${gmapLink(r,"gmap-pop")}`);
   });
 } else {
   const box = document.getElementById("map");
@@ -382,10 +406,11 @@ function render(f){
       <p>${r.desc}</p>
       <ul class="points">${r.points.map(p=>`<li>${p}</li>`).join("")}</ul>
       <p class="area">${r.shop}</p>
+      ${gmapLink(r)}
       <div class="posts" data-shop="${r.id}">${postsHTML(r.id)}</div>
       ${formHTML(r.id)}`;
     const go = e=>{
-      if(e.target.closest(".posts, .post-form, .zoomable")) return;
+      if(e.target.closest(".posts, .post-form, .zoomable, .gmap")) return;
       if(!map) return;
       document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"});
       map.flyTo([r.lat,r.lng],11); markers[r.id].openPopup();
