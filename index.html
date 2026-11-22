@@ -48,6 +48,29 @@ h2{font-size:1.35rem;margin:40px 0 12px}
 .card h3{margin:4px 0 0;font-size:1.15rem}
 .card-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;height:auto}
 .visit{margin:0;font-size:.85rem;font-weight:700;color:var(--accent)}
+.posts:empty{display:none}
+.posts{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:10px}
+.posts-title{margin:0;font-weight:700;font-size:.9rem}
+.post{margin:0;display:flex;gap:10px;align-items:flex-start}
+.post img{width:84px;height:84px;object-fit:cover;border-radius:8px;flex:none}
+.post figcaption p{margin:0;font-size:.9rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.post small{color:var(--muted);font-size:.78rem}
+.post-form{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:auto}
+.post-form summary{padding:10px 14px;font-weight:700;font-size:.92rem;cursor:pointer;color:var(--accent)}
+.post-form form{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px}
+.post-form label{display:flex;flex-direction:column;gap:4px;font-size:.88rem}
+.post-form label.check{flex-direction:row;align-items:flex-start;gap:8px}
+.post-form input:not([type=checkbox]),.post-form textarea{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:8px;background:var(--surface);color:var(--text);width:100%}
+.post-form input[type=file]{padding:6px}
+.post-form .req{display:inline;font-size:.72rem;color:#fff;background:var(--accent);border-radius:4px;padding:0 6px;margin-left:4px}
+.post-form button{font:inherit;font-weight:700;padding:10px;border-radius:999px;border:0;background:var(--accent);color:#fff;cursor:pointer}
+.post-form button:disabled{opacity:.6;cursor:wait}
+.post-form .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.form-msg{margin:0;font-size:.88rem}
+.form-msg.ok{color:var(--local)}
+.form-msg.err{color:#dc2626}
+.form-note{margin:0;font-size:.75rem;color:var(--muted)}
 .area{color:var(--muted);font-size:.85rem;margin:0}
 .card p{margin:0}
 .points{margin:4px 0 0;padding-left:1.2em;font-size:.92rem}
@@ -342,16 +365,115 @@ function render(f){
       <p class="area">📍 ${r.area}</p>
       <p>${r.desc}</p>
       <ul class="points">${r.points.map(p=>`<li>${p}</li>`).join("")}</ul>
-      <p class="area">${r.shop}</p>`;
-    const go = ()=>{
+      <p class="area">${r.shop}</p>
+      <div class="posts" data-shop="${r.id}">${postsHTML(r.id)}</div>
+      ${formHTML(r.id)}`;
+    const go = e=>{
+      if(e.target.closest(".posts, .post-form")) return;
       if(!map) return;
       document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"});
       map.flyTo([r.lat,r.lng],11); markers[r.id].openPopup();
     };
     el.addEventListener("click",go);
-    el.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+    el.addEventListener("keydown",e=>{if(e.key==="Enter")go(e);});
+    el.querySelector("form").addEventListener("submit",e=>submitPost(e,r.id));
     list.appendChild(el);
   });
+}
+
+// ===== みんなの投稿（Supabase・承認制） =====
+const SB_URL = "https://tpzigoqmpwqxeuyjnqie.supabase.co";
+const SB_KEY = "sb_publishable_x_TcD0J1zimTANITDXn8vg_hqePGWXd"; // 公開用キー（読み書きのルールはデータベース側で制限）
+const SB_HEAD = {apikey: SB_KEY, Authorization: "Bearer " + SB_KEY};
+const POSTS = {};   // shop_id -> 承認済み投稿の配列
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function postsHTML(id){
+  const ps = POSTS[id] || [];
+  if(!ps.length) return "";
+  return `<p class="posts-title">みんなの写真と感想（${ps.length}件）</p>` + ps.map(p=>`
+    <figure class="post">
+      ${p.url ? `<img src="${esc(p.url)}" alt="${esc(p.nickname || "訪問者")}さんの写真" loading="lazy">` : ""}
+      <figcaption><p>${esc(p.comment)}</p>
+      <small>${esc(p.nickname || "ななしさん")}・${new Date(p.created_at).toLocaleDateString("ja-JP")}</small></figcaption>
+    </figure>`).join("");
+}
+
+function formHTML(id){
+  return `<details class="post-form">
+    <summary>📷 写真と感想を投稿する</summary>
+    <form novalidate>
+      <label>ニックネーム（なくてもOK）<input name="nickname" maxlength="30" autocomplete="nickname"></label>
+      <label>感想 <span class="req">必須</span><textarea name="comment" maxlength="500" rows="3" required placeholder="スープや麺の感想、おすすめのトッピングなど"></textarea></label>
+      <label>写真（なくてもOK）<input name="photo" type="file" accept="image/*"></label>
+      <input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label class="check"><input type="checkbox" name="ok" required> 人の顔や個人情報が写っていない、自分で撮った写真です</label>
+      <button type="submit">投稿する</button>
+      <p class="form-msg" role="status"></p>
+      <p class="form-note">投稿は管理人が確認してから掲載します。写真の位置情報（GPS）は送信前に取り除きます。</p>
+    </form>
+  </details>`;
+}
+
+// 写真を縮小してJPEGに描き直す（位置情報などのメタデータも消える）
+async function shrinkPhoto(file){
+  const img = await new Promise((ok,ng)=>{const i=new Image(); i.onload=()=>ok(i); i.onerror=ng; i.src=URL.createObjectURL(file);});
+  const max = 1280, s = Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.naturalWidth*s); c.height = Math.round(img.naturalHeight*s);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+  URL.revokeObjectURL(img.src);
+  return await new Promise(ok=>c.toBlob(ok,"image/jpeg",0.85));
+}
+
+async function submitPost(e, shopId){
+  e.preventDefault();
+  const f = e.target, msg = f.querySelector(".form-msg"), btn = f.querySelector("button");
+  const nickname = f.nickname.value.trim(), comment = f.comment.value.trim(), file = f.photo.files[0];
+  msg.className = "form-msg";
+  if(f.website.value) return;                       // ロボット対策
+  if(!comment){ msg.textContent = "感想を入力してください。"; msg.classList.add("err"); return; }
+  if(!f.ok.checked){ msg.textContent = "確認のチェックを入れてください。"; msg.classList.add("err"); return; }
+  btn.disabled = true; msg.textContent = "送信しています…";
+  try{
+    let photo_path = null;
+    if(file){
+      if(!file.type.startsWith("image/")) throw new Error("写真のファイルを選んでください。");
+      const blob = await shrinkPhoto(file);
+      if(blob.size > 3*1024*1024) throw new Error("写真が大きすぎます。");
+      photo_path = "pending/" + crypto.randomUUID() + ".jpg";
+      const up = await fetch(`${SB_URL}/storage/v1/object/post-photos/${photo_path}`,
+        {method:"POST", headers:{...SB_HEAD, "Content-Type":"image/jpeg"}, body:blob});
+      if(!up.ok) throw new Error("写真を送れませんでした。");
+    }
+    const res = await fetch(`${SB_URL}/rest/v1/shop_posts`, {method:"POST",
+      headers:{...SB_HEAD, "Content-Type":"application/json", Prefer:"return=minimal"},
+      body: JSON.stringify({shop_id:shopId, nickname: nickname || null, comment, photo_path})});
+    if(!res.ok) throw new Error("送信できませんでした。");
+    f.reset();
+    msg.textContent = "ありがとうございます！投稿を受け付けました。確認後にここに掲載されます。";
+    msg.classList.add("ok");
+  }catch(err){
+    msg.textContent = (err.message || "送信できませんでした。") + " 時間をおいてもう一度お試しください。";
+    msg.classList.add("err");
+  }finally{ btn.disabled = false; }
+}
+
+async function loadPosts(){
+  try{
+    const res = await fetch(`${SB_URL}/rest/v1/shop_posts?select=id,shop_id,nickname,comment,photo_path,created_at&status=eq.approved&order=created_at.desc&limit=500`, {headers:SB_HEAD});
+    if(!res.ok) return;
+    const rows = await res.json();
+    const paths = rows.map(p=>p.photo_path).filter(Boolean);
+    const urls = {};
+    if(paths.length){
+      const s = await fetch(`${SB_URL}/storage/v1/object/sign/post-photos`, {method:"POST",
+        headers:{...SB_HEAD, "Content-Type":"application/json"}, body:JSON.stringify({expiresIn:86400, paths})});
+      if(s.ok) (await s.json()).forEach(x=>{ if(x.signedURL) urls[x.path] = SB_URL + "/storage/v1" + x.signedURL; });
+    }
+    rows.forEach(p=>{ p.url = urls[p.photo_path]; (POSTS[p.shop_id] ||= []).push(p); });
+    document.querySelectorAll(".posts").forEach(d=>{ d.innerHTML = postsHTML(d.dataset.shop); });
+  }catch(e){ /* オフラインなどで読めなくても一覧はそのまま */ }
 }
 document.querySelectorAll(".filters button").forEach(b=>{
   b.addEventListener("click",()=>{
@@ -361,6 +483,7 @@ document.querySelectorAll(".filters button").forEach(b=>{
   });
 });
 render("all");
+loadPosts();
 
 document.getElementById("feature-map").addEventListener("click",()=>{
   const r = RAMEN.find(x=>x.id==="mitake");
