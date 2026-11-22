@@ -51,8 +51,17 @@ h2{font-size:1.35rem;margin:40px 0 12px}
 .posts:empty{display:none}
 .posts{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:10px}
 .posts-title{margin:0;font-weight:700;font-size:.9rem}
-.post{margin:0;display:flex;gap:10px;align-items:flex-start}
-.post img{width:84px;height:84px;object-fit:cover;border-radius:8px;flex:none}
+.post{margin:0;display:flex;flex-direction:column;gap:6px}
+.post img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}
+.zoomable{cursor:zoom-in}
+#lightbox{border:0;padding:0;background:transparent;max-width:100vw;max-height:100vh;width:100vw;height:100vh}
+#lightbox::backdrop{background:rgba(0,0,0,.88)}
+#lightbox img{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-out}
+#lightbox button{position:fixed;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:0;
+  background:rgba(255,255,255,.9);color:#111;font-size:1.4rem;line-height:1;cursor:pointer}
+#lightbox p{position:fixed;left:0;right:0;bottom:0;margin:0;padding:12px 16px;color:#fff;font-size:.9rem;
+  background:linear-gradient(transparent,rgba(0,0,0,.7));text-align:center}
+#lightbox p:empty{display:none}
 .post figcaption p{margin:0;font-size:.9rem;white-space:pre-wrap;overflow-wrap:anywhere}
 .post small{color:var(--muted);font-size:.78rem}
 .post-form{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:auto}
@@ -358,7 +367,7 @@ function render(f){
     const el = document.createElement("article");
     el.className="card"; el.tabIndex=0;
     el.innerHTML = `
-      ${r.img ? `<img class="card-photo" src="${r.img}" alt="${r.imgAlt || r.name}" width="900" height="1200" loading="lazy">` : ""}
+      ${r.img ? `<img class="card-photo zoomable" tabindex="0" src="${r.img}" alt="${r.imgAlt || r.name}" width="900" height="1200" loading="lazy">` : ""}
       <span class="tag ${r.type}">${label(r.type)}</span>
       <h3>${r.name}</h3>
       ${r.visit ? `<p class="visit">📷 ${r.visit}</p>` : ""}
@@ -369,7 +378,7 @@ function render(f){
       <div class="posts" data-shop="${r.id}">${postsHTML(r.id)}</div>
       ${formHTML(r.id)}`;
     const go = e=>{
-      if(e.target.closest(".posts, .post-form")) return;
+      if(e.target.closest(".posts, .post-form, .zoomable")) return;
       if(!map) return;
       document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"});
       map.flyTo([r.lat,r.lng],11); markers[r.id].openPopup();
@@ -393,7 +402,7 @@ function postsHTML(id){
   if(!ps.length) return "";
   return `<p class="posts-title">みんなの写真と感想（${ps.length}件）</p>` + ps.map(p=>`
     <figure class="post">
-      ${p.url ? `<img src="${esc(p.url)}" alt="${esc(p.nickname || "訪問者")}さんの写真" loading="lazy">` : ""}
+      ${p.url ? `<img class="zoomable" src="${esc(p.url)}" alt="${esc(p.nickname || "ななしさん")}さんの写真" loading="lazy" tabindex="0" data-caption="${esc(p.comment)}">` : ""}
       <figcaption><p>${esc(p.comment)}</p>
       <small>${esc(p.nickname || "ななしさん")}・${new Date(p.created_at).toLocaleDateString("ja-JP")}</small></figcaption>
     </figure>`).join("");
@@ -484,6 +493,27 @@ document.querySelectorAll(".filters button").forEach(b=>{
 });
 render("all");
 loadPosts();
+
+// 写真をタップすると画面いっぱいに拡大
+const lb = document.createElement("dialog");
+lb.id = "lightbox";
+lb.innerHTML = `<img alt=""><p></p><button type="button" aria-label="閉じる">×</button>`;
+document.body.appendChild(lb);
+function openPhoto(img){
+  lb.querySelector("img").src = img.currentSrc || img.src;
+  lb.querySelector("img").alt = img.alt;
+  lb.querySelector("p").textContent = img.dataset.caption || "";
+  lb.showModal();
+}
+lb.addEventListener("click", ()=>lb.close());
+document.addEventListener("click", e=>{
+  const img = e.target.closest("img.zoomable");
+  if(img){ e.stopPropagation(); openPhoto(img); }
+}, true);
+document.addEventListener("keydown", e=>{
+  const img = e.target.closest && e.target.closest("img.zoomable");
+  if(img && (e.key==="Enter" || e.key===" ")){ e.preventDefault(); e.stopPropagation(); openPhoto(img); }
+}, true);
 
 document.getElementById("feature-map").addEventListener("click",()=>{
   const r = RAMEN.find(x=>x.id==="mitake");
