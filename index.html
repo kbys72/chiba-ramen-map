@@ -46,6 +46,8 @@ h2{font-size:1.35rem;margin:40px 0 12px}
 .tag.meiten{background:color-mix(in srgb,var(--meiten) 14%,transparent);color:var(--meiten)}
 .tag.local{background:color-mix(in srgb,var(--local) 14%,transparent);color:var(--local)}
 .card h3{margin:4px 0 0;font-size:1.15rem}
+.card-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-bottom:6px;display:block;height:auto}
+.visit{margin:0;font-size:.85rem;font-weight:700;color:var(--accent)}
 .area{color:var(--muted);font-size:.85rem;margin:0}
 .card p{margin:0}
 .points{margin:4px 0 0;padding-left:1.2em;font-size:.92rem}
@@ -229,8 +231,11 @@ const RAMEN = [
   {
     id:"shinsei", type:"local", name:"麺屋 真星", area:"浦安市 北栄2-19-26（東西線 浦安駅 東口から徒歩約7分）",
     lat:35.6706, lng:139.8947,
-    desc:"東西線・浦安駅から歩いて7分ほどのラーメン店。麺がなくなり次第終了の人気店で、限定メニューも話題になる。",
-    points:["東西線 浦安駅から徒歩約7分","麺がなくなり次第終了","満席時は先に食券を購入"],
+    img:"images/shinsei.jpg",
+    imgAlt:"麺屋 真星の白いスープのラーメン。鶏と豚のチャーシュー、味玉、白髪ねぎ、かいわれ、メンマがのっている",
+    visit:"2026年11月に食べてきました",
+    desc:"泡立つような真っ白でクリーミーなスープ。しっとりした鶏チャーシューとレアな豚チャーシューの2種類に、味玉、白髪ねぎとかいわれ、メンマ。仕上げに黒こしょうとピンクペッパーが散らしてあります。卓上の椎茸酢や昆布酢、自家製辣油で、途中の味変も楽しめます。",
+    points:["濃厚鶏白湯、淡麗鶏魚介、まぜそば、限定麺や和え玉もある","麺がなくなり次第終了","満席時は先に食券を購入"],
     shop:"麺屋 真星（浦安市北栄）"
   },
   {
@@ -330,8 +335,10 @@ function render(f){
     const el = document.createElement("article");
     el.className="card"; el.tabIndex=0;
     el.innerHTML = `
+      ${r.img ? `<img class="card-photo" src="${r.img}" alt="${r.imgAlt || r.name}" width="900" height="1200" loading="lazy">` : ""}
       <span class="tag ${r.type}">${label(r.type)}</span>
       <h3>${r.name}</h3>
+      ${r.visit ? `<p class="visit">📷 ${r.visit}</p>` : ""}
       <p class="area">📍 ${r.area}</p>
       <p>${r.desc}</p>
       <ul class="points">${r.points.map(p=>`<li>${p}</li>`).join("")}</ul>
