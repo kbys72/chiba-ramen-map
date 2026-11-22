@@ -194,7 +194,7 @@ footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px sol
 </main>
 
 <footer>
-  <div class="wrap">千葉ラーメンMAP ／ 食べて応援、がんばろう千葉 ／ 地図データ © OpenStreetMap contributors</div>
+  <div class="wrap">千葉ラーメンMAP ／ 食べて応援、がんばろう千葉 ／ 地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener" style="color:inherit">国土地理院（地理院タイル）</a></div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -384,8 +384,10 @@ function zoomTo(r){
 
 if (window.L) {
   map = L.map("map",{scrollWheelZoom:false}).setView([35.48,140.12],9);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-    maxZoom:18, attribution:"&copy; OpenStreetMap contributors"
+  // 地図の画像：国土地理院「地理院タイル」の淡色地図（申請不要・出典の明示が必要）
+  L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png",{
+    minZoom:5, maxZoom:18,
+    attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
   }).addTo(map);
   RAMEN.forEach(r=>{
     markers[r.id] = L.circleMarker([r.lat,r.lng],{radius:10,color:"#fff",weight:2,fillColor:color(r.type),fillOpacity:1})
