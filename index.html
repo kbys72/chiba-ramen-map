@@ -115,6 +115,7 @@ a.feature-btn{text-decoration:none;display:inline-block}
   background:#fff;color:#9a3412}
 .feature-btn:hover{opacity:.9}
 footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px solid var(--line)}
+.reset-ctrl a{width:auto !important;padding:0 8px;font-size:12px;font-weight:700;color:#333}
 .leaflet-popup-content{font-family:inherit;line-height:1.6}
 </style>
 </head>
@@ -374,6 +375,13 @@ const label = t => TYPES[t];
 // Map (works only when online; the list works regardless)
 let map = null;
 const markers = {};
+// お店の周り（町の様子がわかる大きさ）までズーム。すでに近くまで寄っていれば、それ以上は寄らない
+const SHOP_ZOOM = 15;
+function zoomTo(r){
+  if(!map) return;
+  map.flyTo([r.lat,r.lng], Math.max(map.getZoom(), SHOP_ZOOM), {duration:0.8});
+}
+
 if (window.L) {
   map = L.map("map",{scrollWheelZoom:false}).setView([35.48,140.12],9);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
@@ -382,8 +390,33 @@ if (window.L) {
   RAMEN.forEach(r=>{
     markers[r.id] = L.circleMarker([r.lat,r.lng],{radius:10,color:"#fff",weight:2,fillColor:color(r.type),fillOpacity:1})
       .addTo(map)
-      .bindPopup(`<strong>${r.name}</strong><br>${r.area}<br><small>${r.shop}</small><br>${gmapLink(r,"gmap-pop")}`);
+      .bindPopup(`<strong>${r.name}</strong><br>${r.area}<br><small>${r.shop}</small><br>${gmapLink(r,"gmap-pop")}`)
+      // ピンを押したら、そのお店の周りまで自動でズーム
+      .on("click", ()=> zoomTo(r));
   });
+
+  // すべてのピンが収まる表示（最初の表示と「全体表示」ボタンで使う）
+  const allBounds = L.latLngBounds(RAMEN.map(r=>[r.lat,r.lng]));
+  const fitAll = (animate)=> animate
+    ? map.flyToBounds(allBounds,{padding:[30,30],duration:0.8})
+    : map.fitBounds(allBounds,{padding:[30,30]});
+  fitAll(false);
+
+  // 「全体表示」ボタン（＋−ボタンの下）
+  const ResetControl = L.Control.extend({
+    options:{position:"topleft"},
+    onAdd(){
+      const box = L.DomUtil.create("div","leaflet-bar reset-ctrl");
+      const btn = L.DomUtil.create("a","",box);
+      btn.href = "#"; btn.role = "button";
+      btn.title = "千葉県全体を表示"; btn.setAttribute("aria-label","千葉県全体を表示");
+      btn.innerHTML = "全体";
+      L.DomEvent.disableClickPropagation(box);
+      L.DomEvent.on(btn,"click",e=>{ L.DomEvent.preventDefault(e); map.closePopup(); fitAll(true); });
+      return box;
+    }
+  });
+  map.addControl(new ResetControl());
 } else {
   const box = document.getElementById("map");
   box.style.cssText += ";display:grid;place-items:center;color:var(--muted);text-align:center;padding:16px";
@@ -413,7 +446,7 @@ function render(f){
       if(e.target.closest(".posts, .post-form, .zoomable, .gmap")) return;
       if(!map) return;
       document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"});
-      map.flyTo([r.lat,r.lng],11); markers[r.id].openPopup();
+      zoomTo(r); markers[r.id].openPopup();
     };
     el.addEventListener("click",go);
     el.addEventListener("keydown",e=>{if(e.key==="Enter")go(e);});
@@ -550,7 +583,7 @@ document.addEventListener("keydown", e=>{
 document.getElementById("feature-map").addEventListener("click",()=>{
   const r = RAMEN.find(x=>x.id==="mitake");
   document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"});
-  if(map){ map.flyTo([r.lat,r.lng],13); markers.mitake.openPopup(); }
+  if(map){ zoomTo(r); markers.mitake.openPopup(); }
 });
 </script>
 </body>
