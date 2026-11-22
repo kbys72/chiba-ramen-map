@@ -194,7 +194,7 @@ footer{padding:24px 0 48px;color:var(--muted);font-size:.8rem;border-top:1px sol
 </main>
 
 <footer>
-  <div class="wrap">千葉ラーメンMAP ／ 食べて応援、がんばろう千葉 ／ 地図データ © OpenStreetMap contributors</div>
+  <div class="wrap">千葉ラーメンMAP ／ 食べて応援、がんばろう千葉 ／ 地図：© Stadia Maps © OpenMapTiles © OpenStreetMap contributors</div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -384,9 +384,21 @@ function zoomTo(r){
 
 if (window.L) {
   map = L.map("map",{scrollWheelZoom:false}).setView([35.48,140.12],9);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-    maxZoom:18, attribution:"&copy; OpenStreetMap contributors"
+  // 地図の画像：Stadia Maps「Alidade Smooth」（サイトのドメインを Stadia に登録して使う。キーは不要）
+  const stadia = L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",{
+    maxZoom:20,
+    attribution:'&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
   }).addTo(map);
+  // Stadia の地図が読めないとき（ドメイン未登録・上限超えなど）は OpenStreetMap に自動で切り替える
+  let stadiaOK = false, stadiaErr = 0;
+  stadia.on("tileload", ()=>{ stadiaOK = true; });
+  stadia.on("tileerror", ()=>{
+    if(stadiaOK || ++stadiaErr < 3) return;
+    map.removeLayer(stadia);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+      maxZoom:18, attribution:"&copy; OpenStreetMap contributors"
+    }).addTo(map);
+  });
   RAMEN.forEach(r=>{
     markers[r.id] = L.circleMarker([r.lat,r.lng],{radius:10,color:"#fff",weight:2,fillColor:color(r.type),fillOpacity:1})
       .addTo(map)
