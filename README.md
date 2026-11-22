@@ -4,7 +4,7 @@
 
 ## 見かた
 
-`index.html` をブラウザで開いてください。地図（Stadia Maps「Alidade Smooth」/ Leaflet。読めないときは OpenStreetMap）の表示にはインターネット接続が必要です。
+`index.html` をブラウザで開いてください。地図（OpenStreetMap / Leaflet）の表示にはインターネット接続が必要です。
 
 ## 載せているもの
 
